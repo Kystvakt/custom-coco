@@ -4,5 +4,9 @@ __pycache__/
 ### Environments ###
 .venv/
 
+### Directories ###
+data/
+checkpoint/
+
 ### JetBrains ###
 .idea/
