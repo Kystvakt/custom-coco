@@ -11,11 +11,10 @@ class CustomCocoDataset(Dataset):
         self.root = image_path
         self.coco = COCO(annot_path)
         self.ids = list(sorted(self.coco.imgs.keys()))
-        self.annotations = annot_path
         self.transform = transform
 
     def __len__(self):
-        return len(self.annotations)
+        return len(self.ids)
 
     def __getitem__(self, idx):
         img_id = self.ids[idx]
@@ -55,6 +54,11 @@ class ResizeWithBoxes:
         boxes_resized[:, 1] *= h_scale  # y1
         boxes_resized[:, 2] *= w_scale  # x2
         boxes_resized[:, 3] *= h_scale  # y2
+
+        for i in range(len(boxes_resized)):
+            if boxes_resized[i, 0] == boxes_resized[i, 2] or boxes_resized[i, 1] == boxes_resized[i, 3]:
+                print(image)
+                print(boxes[i])
 
         return resized_image, boxes_resized
 
