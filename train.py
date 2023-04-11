@@ -52,7 +52,8 @@ def main():
         num_workers=os.cpu_count()//2,
         collate_fn=collate_fn
     )
-
+    print("Train dataset size:", len(tr_ds))
+    print("Validation dataset size:", len(te_ds))
     # CUDA
     torch.set_float32_matmul_precision('high')
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -70,7 +71,7 @@ def main():
     checkpoint_dir = 'checkpoint/'
     best_valid_loss = float('inf')
 
-    for epoch in trange(args.num_epochs):
+    for epoch in range(args.num_epochs):
         model.train()
         train_loss = 0.
         valid_loss = 0.
@@ -96,7 +97,9 @@ def main():
             optimizer.step()
 
             train_loss += losses.item()
-        print("\n", train_loss / 8)
+
+        train_loss = train_loss / len(tr_dl)
+        print(train_loss)
 
         # eval
         with torch.no_grad():
@@ -115,15 +118,19 @@ def main():
                 losses = sum(loss for loss in loss_dict.values())
 
                 valid_loss += losses.item()
-            print("\n", valid_loss / 8)
+
+            valid_loss = valid_loss / len(te_dl)
+            print(valid_loss)
 
         if args.use_wandb:
-            wandb.log({"Train Loss": train_loss, "Valid Loss": valid_loss, "Epoch": epoch + 1})
+            wandb.log({"train-loss": train_loss, "valid-loss": valid_loss, "epoch": epoch + 1})
 
         if valid_loss < best_valid_loss:
             best_valid_loss = valid_loss
             checkpoint_path = os.path.join(checkpoint_dir, f"best_checkpoint.pth")
             save_checkpoint(epoch + 1, model, train_loss, valid_loss, optimizer, filepath=checkpoint_path)
+            print(f"New best loss: {valid_loss}")
+            print("Checkpoint saved.")
 
     if args.use_wandb:
         wandb.finish()
