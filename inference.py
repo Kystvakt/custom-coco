@@ -1,12 +1,14 @@
 import glob
 
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 import numpy as np
 import torch.cuda
-import matplotlib.pyplot as plt
 from PIL import Image
 from torch.optim import SGD
 from torchvision.models.detection import fasterrcnn_resnet50_fpn_v2
-from torchvision.transforms import Compose, ToTensor, Resize
+
+from dataset import CustomCompose, ResizeWithBoxes, ToTensorWithBoxes
 
 
 # Set device
@@ -21,46 +23,40 @@ model.to(device)
 optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
 
 # Load checkpoint
-checkpoint = torch.load('checkpoint/best_checkpoint.pth')
+checkpoint = torch.load('checkpoint/checkpoint.pth')
 model.load_state_dict(checkpoint['model_state_dict'])
 optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 epoch = checkpoint['epoch']
 model.eval()
 
 # Inference
-filelist = glob.glob('*.jpg', root_dir='data/train/image/')
+dir_path = 'data/train/image/'
+filelist = glob.glob('*.jpg', root_dir=dir_path)
 
 img_idx = 0
-img_path = 'data/train/image/' + filelist[img_idx]
-
+img_path = dir_path + filelist[img_idx]
 x = Image.open(img_path)
-transform = Compose([
-    Resize((512, 384), antialias=True),
-    ToTensor(),
+transform = CustomCompose([
+    ResizeWithBoxes((384, 512)),
+    ToTensorWithBoxes(),
 ])
-x = transform(x)
+
+x = transform(x)[0]
 x = x.unsqueeze(0).to(device)
 output = model(x)
+
+# for display purpose
 y = np.array(x.cpu())
 y = np.transpose(y[0], (1, 2, 0))
-plt.imshow(y)
+
+fig, ax = plt.subplots()
+ax.imshow(y, origin='lower')
 for (x1, y1, x2, y2) in output[0]['boxes']:
     x1 = x1.cpu().detach().numpy()
     y1 = y1.cpu().detach().numpy()
     x2 = x2.cpu().detach().numpy()
     y2 = y2.cpu().detach().numpy()
-    plt.plot([x1, x2], [y1, y2])
-    # plt.scatter(x1, y1)
-    # plt.scatter(x2, y2)
+    rect = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=1, facecolor='none', edgecolor='r')
+    ax.add_patch(rect)
+
 plt.show()
-# for img in filelist:
-#     x = Image.open('./data/train/image/' + img)
-#     transform = Compose([
-#         ToTensor(),
-#         Resize((512, 384), antialias=True),
-#     ])
-#     x = transform(x)
-#     x = x.unsqueeze(0).to(device)
-#     y_hat = model(x)
-#
-#     print(y_hat.keys())
