@@ -1,6 +1,8 @@
-torch
-torchvision
-pillow
-pycocotools
-wandb
-tqdm
+torch~=2.0.0+cu118
+torchvision~=0.15.1+cu118
+pillow~=9.3.0
+pycocotools~=2.0.6
+wandb~=0.14.2
+numpy~=1.24.1
+tqdm~=4.65.0
+matplotlib~=3.7.1
