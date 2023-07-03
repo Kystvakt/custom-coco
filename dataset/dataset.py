@@ -38,33 +38,36 @@ class CustomCocoDataset(Dataset):
 
 class ResizeWithBoxes:
     def __init__(self, size):
-        self.size = size
+        self.size = size  # (height, width)
 
-    def __call__(self, image, boxes):
+    def __call__(self, image, boxes=None):
         w, h = image.size
-        new_w, new_h = self.size
+        new_h, new_w = self.size  # do not be confused!
 
         w_scale = new_w / w
         h_scale = new_h / h
 
         resized_image = Resize(self.size)(image)
 
-        boxes_resized = boxes.clone()
-        boxes_resized[:, 0] *= w_scale  # x1
-        boxes_resized[:, 1] *= h_scale  # y1
-        boxes_resized[:, 2] *= w_scale  # x2
-        boxes_resized[:, 3] *= h_scale  # y2
+        if boxes is not None:
+            boxes_resized = boxes.clone()
+            boxes_resized[:, 0] *= w_scale  # x1
+            boxes_resized[:, 1] *= h_scale  # y1
+            boxes_resized[:, 2] *= w_scale  # x2
+            boxes_resized[:, 3] *= h_scale  # y2
 
-        for i in range(len(boxes_resized)):
-            if boxes_resized[i, 0] == boxes_resized[i, 2] or boxes_resized[i, 1] == boxes_resized[i, 3]:
-                print(image)
-                print(boxes[i])
+            for i in range(len(boxes_resized)):
+                if boxes_resized[i, 0] == boxes_resized[i, 2] or boxes_resized[i, 1] == boxes_resized[i, 3]:
+                    print(image)
+                    print(boxes[i])
+        else:
+            boxes_resized = None
 
         return resized_image, boxes_resized
 
 
 class ToTensorWithBoxes:
-    def __call__(self, image, boxes):
+    def __call__(self, image, boxes=None):
         image_tensor = ToTensor()(image)
         return image_tensor, boxes
 
@@ -73,7 +76,7 @@ class CustomCompose:
     def __init__(self, transforms):
         self.transforms = transforms
 
-    def __call__(self, image, boxes):
+    def __call__(self, image, boxes=None):
         for t in self.transforms:
             image, boxes = t(image, boxes)
         return image, boxes
@@ -83,7 +86,6 @@ class MyDataset(Dataset):
     def __init__(self, root, annotation, transforms=None):
         self.root = root
         self.transforms = transforms
-        # self.annotation = annotation
         self.coco = COCO(annotation)
         self.ids = list(sorted(self.coco.imgs.keys()))
 
@@ -104,7 +106,7 @@ class MyDataset(Dataset):
             boxes.append(coco_annotation[i]['bbox'])
         boxes = torch.as_tensor(boxes, dtype=torch.float32)
 
-        # labels (only target: hair or background)
+        # labels (only one target: hair or background)
         labels = torch.ones((num_objs,), dtype=torch.int64)
 
         # image id to tensor
@@ -120,24 +122,7 @@ class MyDataset(Dataset):
         if self.transforms is not None:
             rescaled_img = self.transforms(img)
 
-            # resize bounding boxes
-            # ratios = tuple(float(s) / float(s_orig) for s, s_orig in zip(rescaled_img.size, img.size))
-            # ratio_width, ratio_height = ratios
-            ratio_width, ratio_height = 0.25, 0.250326
-            # img.size should be (2048, 1534)
-            # rescaled_img.size should be (512, 384)
-
-            # annots = coco_annotation.copy()
-            # for annot in annots:
-            #     boxes = annot['bbox']
-            #     ratio = [ratio_width, ratio_height, ratio_width, ratio_height]
-            #     if len(boxes) != 0:
-            #         scaled_boxes = list(boxes[i] * ratio[i] for i in range(4))
-            #         scaled_boxes = torch.Tensor(scaled_boxes)
-            #     else:
-            #         scaled_boxes = torch.zeros((0, 4), dtype=torch.float32)
-            #     # scaled_boxes = boxes * [ratio_width, ratio_height, ratio_width, ratio_height]
-            #     annot['bbox'] = scaled_boxes
+            ratio_width, ratio_height = tuple(float(s)/float(s_orig) for s, s_orig in zip(rescaled_img.size, img.size))
             scaled_boxes = list()
             for box in annots['boxes']:
                 ratio = [ratio_width, ratio_height, ratio_width, ratio_height]
