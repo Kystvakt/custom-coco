@@ -51,12 +51,24 @@ y = np.transpose(y[0], (1, 2, 0))
 
 fig, ax = plt.subplots()
 ax.imshow(y, origin='lower')
-for (x1, y1, x2, y2) in output[0]['boxes']:
-    x1 = x1.cpu().detach().numpy()
-    y1 = y1.cpu().detach().numpy()
-    x2 = x2.cpu().detach().numpy()
-    y2 = y2.cpu().detach().numpy()
-    rect = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=1, facecolor='none', edgecolor='r')
-    ax.add_patch(rect)
+for i, score in enumerate(output[0]['scores']):
+    if score > 0.75:
+        x1, y1, x2, y2 = output[0]['boxes'][i]
+        x1 = x1.cpu().detach().numpy()
+        y1 = y1.cpu().detach().numpy()
+        x2 = x2.cpu().detach().numpy()
+        y2 = y2.cpu().detach().numpy()
+        rect = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=1, facecolor='none', edgecolor='r')
+        ax.add_patch(rect)
+
+# for (x1, y1, x2, y2) in output[0]['boxes']:
+#     x1 = x1.cpu().detach().numpy()
+#     y1 = y1.cpu().detach().numpy()
+#     x2 = x2.cpu().detach().numpy()
+#     y2 = y2.cpu().detach().numpy()
+#     rect = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=1, facecolor='none', edgecolor='r')
+#     ax.add_patch(rect)
 
 plt.show()
+print(len(output[0]['scores']))
+print(output[0]['scores'])
