@@ -7,6 +7,8 @@ __pycache__/
 ### Directories ###
 data/
 checkpoint/
+yolo_hair/
+yolo_root/
 
 ### JetBrains ###
 .idea/
